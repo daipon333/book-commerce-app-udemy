@@ -2,6 +2,7 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { NextAuthOptions } from "next-auth";
 import GithubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
+import prisma from "../prisma";
 
 export const nextAuthOptions: NextAuthOptions = {
   debug: false,
@@ -29,4 +30,5 @@ export const nextAuthOptions: NextAuthOptions = {
       };
     },
   },
+  secret: process.env.NEXTAUTH_SECRET,
 };

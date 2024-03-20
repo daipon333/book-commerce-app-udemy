@@ -2,9 +2,69 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { BookType } from "../types/types";
+import { useState } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { title } from "process";
+
+type BookProps = {
+  book: BookType;
+  isPurchased: boolean;
+};
 
 // eslint-disable-next-line react/display-name
-const Book = ({ book }: any) => {
+const Book = ({ book, isPurchased }: BookProps) => {
+  const [showModal, setShowModal] = useState(false);
+  const { data: session } = useSession();
+  const user: any = session?.user;
+  const router = useRouter();
+
+  const startCheckout = async () => {
+    try {
+      const response = await fetch(`/api/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: book.title,
+          price: book.price,
+          userId: user?.id,
+          bookId: book.id,
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (responseData) {
+        router.push(responseData.checkout_url);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const handleCancel = () => {
+    setShowModal(false);
+  };
+
+  const handlePurchaseClick = () => {
+    if (isPurchased) {
+      alert("その商品は購入済みです");
+    } else {
+      setShowModal(true);
+    }
+  };
+
+  const handlePurchaseConfirm = () => {
+    if (!user) {
+      setShowModal(false);
+      // ログインページへリダレクト
+      router.push("/login");
+    } else {
+      //stripeで決済する
+      startCheckout();
+    }
+  };
   return (
     <>
       {/* アニメーションスタイル */}
@@ -25,10 +85,13 @@ const Book = ({ book }: any) => {
       `}</style>
 
       <div className='flex flex-col items-center m-4'>
-        <a className='cursor-pointer shadow-2xl duration-300 hover:translate-y-1 hover:shadow-none'>
+        <a
+          onClick={handlePurchaseClick}
+          className='cursor-pointer shadow-2xl duration-300 hover:translate-y-1 hover:shadow-none'
+        >
           <Image
             priority
-            src={book.thumbnail}
+            src={book.thumbnail.url}
             alt={book.title}
             width={450}
             height={350}
@@ -41,17 +104,25 @@ const Book = ({ book }: any) => {
           </div>
         </a>
 
-        {/* <div className="absolute top-0 left-0 right-0 bottom-0 bg-slate-900 bg-opacity-50 flex justify-center items-center modal">
-          <div className="bg-white p-8 rounded-lg">
-            <h3 className="text-xl mb-4">本を購入しますか？</h3>
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
-              購入する
-            </button>
-            <button className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-              キャンセル
-            </button>
+        {showModal && (
+          <div className='absolute top-0 left-0 right-0 bottom-0 bg-slate-900 bg-opacity-50 flex justify-center items-center modal'>
+            <div className='bg-white p-8 rounded-lg'>
+              <h3 className='text-xl mb-4'>本を購入しますか？</h3>
+              <button
+                onClick={handlePurchaseConfirm}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4'
+              >
+                購入する
+              </button>
+              <button
+                onClick={handleCancel}
+                className='bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded'
+              >
+                キャンセル
+              </button>
+            </div>
           </div>
-        </div> */}
+        )}
       </div>
     </>
   );
